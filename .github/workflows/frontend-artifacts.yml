@@ -15,17 +15,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2. Télécharger et décompresser les artefacts envoyés
-      - name: Download and Store Artifacts
+      # 2. Téléchargement ou création des artefacts
+      - name: Check for Artifacts
+        run: |
+          if [ ! -f "frontend-artifacts.zip" ]; then
+            echo "Erreur : Le fichier frontend-artifacts.zip est introuvable."
+            exit 1
+          fi
+
+      # 3. Déplacer les artefacts dans un dossier spécifique
+      - name: Store Artifacts
         run: |
           mkdir -p archived-frontend
           mv frontend-artifacts.zip archived-frontend/
-          cd archived-frontend
-          unzip frontend-artifacts.zip
-          echo "Frontend artifacts archived successfully!"
 
-      # 3. Optionnel : Publier les artefacts comme assets d'une Release
+      # 4. Optionnel : Publier les artefacts comme assets d'une Release
       - name: Upload to Release
+        if: github.event_name == 'release'  # Assurez-vous que le workflow est déclenché par une release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ github.event.release.upload_url }}
