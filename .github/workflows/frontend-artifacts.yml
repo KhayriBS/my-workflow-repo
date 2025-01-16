@@ -15,21 +15,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2. Téléchargement ou création des artefacts
+      # 2. Installer Node.js pour construire le projet
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
+      # 3. Installer les dépendances et construire le projet Angular
+      - name: Install Dependencies and Build
+        run: |
+          cd Frontend
+          npm install
+          npm run build
+          zip -r frontend-artifacts.zip dist/
+
+      # 4. Vérifier que le fichier existe
       - name: Check for Artifacts
         run: |
-          if [ ! -f "frontend-artifacts.zip" ]; then
+          if [ ! -f "Frontend/frontend-artifacts.zip" ]; then
             echo "Erreur : Le fichier frontend-artifacts.zip est introuvable."
             exit 1
           fi
 
-      # 3. Déplacer les artefacts dans un dossier spécifique
+      # 5. Déplacer les artefacts dans un dossier spécifique
       - name: Store Artifacts
         run: |
           mkdir -p archived-frontend
-          mv frontend-artifacts.zip archived-frontend/
+          mv Frontend/frontend-artifacts.zip archived-frontend/
 
-      # 4. Optionnel : Publier les artefacts comme assets d'une Release
+      # 6. Optionnel : Publier les artefacts comme assets d'une Release
       - name: Upload to Release
         if: github.event_name == 'release'  # Assurez-vous que le workflow est déclenché par une release
         uses: actions/upload-release-asset@v1
