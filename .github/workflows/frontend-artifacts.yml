@@ -1,0 +1,34 @@
+name: Archive Frontend Artifacts
+
+on:
+  workflow_dispatch:  # Permet d'exécuter manuellement le workflow
+  push:
+    branches:
+      - main          # Déclenche le workflow sur chaque push vers la branche `main`
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout le repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # 2. Télécharger et décompresser les artefacts envoyés
+      - name: Download and Store Artifacts
+        run: |
+          mkdir -p archived-frontend
+          mv frontend-artifacts.zip archived-frontend/
+          cd archived-frontend
+          unzip frontend-artifacts.zip
+          echo "Frontend artifacts archived successfully!"
+
+      # 3. Optionnel : Publier les artefacts comme assets d'une Release
+      - name: Upload to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: archived-frontend/frontend-artifacts.zip
+          asset_name: frontend-artifacts.zip
+          asset_content_type: application/zip
