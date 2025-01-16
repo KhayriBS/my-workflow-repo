@@ -15,40 +15,29 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2. Installer Node.js pour construire le projet
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-
-      # 3. Installer les dépendances et construire le projet Angular
-      - name: Install Dependencies and Build
+      # 2. Construire et compresser les artefacts
+      - name: Build and Compress Artifacts
         run: |
           cd Frontend
           npm install
           npm run build
           zip -r frontend-artifacts.zip dist/
 
-      # 4. Vérifier que le fichier existe
-      - name: Check for Artifacts
+      # 3. Récupérer l'URL d'upload
+      - name: Get Release Upload URL
+        id: get_upload_url
         run: |
-          if [ ! -f "Frontend/frontend-artifacts.zip" ]; then
-            echo "Erreur : Le fichier frontend-artifacts.zip est introuvable."
-            exit 1
-          fi
+          upload_url=$(curl -s -X GET -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/KhayriBS/my-workflow-repo/releases \
+            | jq -r '.[] | select(.tag_name=="v1.0.0") | .upload_url' \
+            | sed -e "s/{?name,label}//")
+          echo "::set-output name=upload_url::$upload_url"
 
-      # 5. Déplacer les artefacts dans un dossier spécifique
-      - name: Store Artifacts
+      # 4. Uploader les artefacts
+      - name: Upload Artifacts
         run: |
-          mkdir -p archived-frontend
-          mv Frontend/frontend-artifacts.zip archived-frontend/
-
-      # 6. Optionnel : Publier les artefacts comme assets d'une Release
-      - name: Upload to Release
-        if: github.event_name == 'release'  # Assurez-vous que le workflow est déclenché par une release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: archived-frontend/frontend-artifacts.zip
-          asset_name: frontend-artifacts.zip
-          asset_content_type: application/zip
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Content-Type: application/zip" \
+            --data-binary @Frontend/frontend-artifacts.zip \
+            "${{ steps.get_upload_url.outputs.upload_url }}?name=frontend-artifacts.zip"
